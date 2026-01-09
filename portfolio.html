@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Krishna Koushik | Automation City</title>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+        <style>
+        body { margin: 0; padding: 0; background: #0f0f0f; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+        #game-container { width: 100vw; height: 100vh; display: block; }
+        
+        /* Modal Styling */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 800px;
+            background: rgba(12, 18, 24, 0.98);
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.2);
+            color: #fff;
+            padding: 0; 
+            z-index: 100;
+            border-radius: 8px;
+            max-height: 85vh;
+            flex-direction: column;
+        }
+
+        /* Window Header Bar */
+        #modal-header {
+            background: rgba(0, 255, 204, 0.1);
+            border-bottom: 2px solid #333;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        /* Back Button */
+        #back-btn {
+            background: transparent;
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            display: block; 
+        }
+        #back-btn:hover { background: rgba(0, 255, 204, 0.2); }
+
+        /* Close Button */
+        #close-btn {
+            background: transparent;
+            border: 2px solid #ff0055;
+            color: #ff0055;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            order: -1; 
+        }
+        #close-btn:hover { background: #ff0055; color: #fff; box-shadow: 0 0 10px #ff0055; }
+
+        /* Title */
+        #modal h2 { 
+            color: #00ffcc; 
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Content Area */
+        #modal-content {
+            padding: 25px;
+            overflow-y: auto; 
+            flex-grow: 1;
+        }
+        
+        /* Scrollbar */
+        #modal-content::-webkit-scrollbar { width: 8px; }
+        #modal-content::-webkit-scrollbar-track { background: #111; }
+        #modal-content::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        #modal-content::-webkit-scrollbar-thumb:hover { background: #00ffcc; }
+        
+        #modal h3 { color: #ff00cc; margin-bottom: 5px; font-size: 20px; margin-top: 0; }
+        #modal h4 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 20px; }
+        #modal p, #modal li { font-size: 15px; line-height: 1.6; color: #ccc; margin-bottom: 10px; }
+        #modal strong { color: #fff; font-weight: bold; }
+        #modal ul { padding-left: 20px; margin-top: 10px;}
+        
+        /* Gallery / Card Layout - SMALL RECTANGLES GRID */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 15px;
+        }
+
+        /* SMALL RECTANGLE CARD */
+        .project-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-top: 2px solid #00ffcc; 
+            border-radius: 4px;
+            padding: 15px;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100px; 
+            overflow: hidden;
+        }
+        .project-card:hover {
+            background: rgba(0, 255, 204, 0.1);
+            border-color: #00ffcc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .card-content { padding: 0; }
+        .card-title { 
+            color: #fff; 
+            font-weight: bold; 
+            font-size: 14px; 
+            margin-bottom: 5px; 
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card-desc { 
+            font-size: 11px !important; 
+            color: #aaa !important; 
+            margin-bottom: 0 !important; 
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4 !important;
+        }
+        .click-hint { display: none; }
+
+        /* Detail View Specifics */
+        .tech-badge { background: #222; border: 1px solid #444; padding: 2px 8px; font-size: 12px; border-radius: 4px; color: #ccc; margin-right: 5px; }
+
+        /* Documentation Button */
+        .doc-btn {
+            display: inline-block;
+            background: #0077b5; 
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 15px;
+            border: 1px solid #005f90;
+            transition: background 0.2s;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .doc-btn:hover { background: #0099e5; }
+        
+        /* Generic Doc Button */
+        .generic-doc-btn {
+            background: #ffaa00; 
+            border: 1px solid #cc8800;
+        }
+        .generic-doc-btn:hover { background: #ffbb33; }
+        
+        /* Instagram Button */
+        .insta-doc-btn {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            border: 1px solid #cc2366;
+        }
+        .insta-doc-btn:hover {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            opacity: 0.9;
+        }
+        
+        /* Canva Button */
+        .canva-doc-btn {
+            background: linear-gradient(45deg, #00c4cc, #7d2ae8);
+            border: 1px solid #7d2ae8;
+        }
+        .canva-doc-btn:hover {
+            background: linear-gradient(45deg, #00c4cc, #7d2ae8);
+            opacity: 0.9;
+        }
+
+        .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+
+        .tag { display: inline-block; background: #1a1a1a; padding: 4px 8px; border-radius: 4px; margin: 2px 2px 2px 0; border: 1px solid #00ffcc; color: #00ffcc; font-size: 11px; font-weight: bold; }
+
+        #hud {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 15px; /* Reduced padding for smaller height */
+            border-radius: 8px; /* Less rounded, more rectangular */
+            pointer-events: none;
+            text-align: center;
+            border: 1px solid #333;
+            font-size: 12px; /* Smaller font */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 50;
+            line-height: 1.4; /* Tighter line height */
+            width: auto;
+            max-width: 300px;
+        }
+    </style>
+    </head>
+    <body>
+
+        <div id="game-container"></div>
+        <div id="hud">WASD / ARROWS to Drive<br>PARK to Interact</div>
+
+        <div id="modal">
+            <div id="modal-header">
+                <button id="close-btn">&times;</button>
+                <button id="back-btn" onclick="handleBack()">← BACK</button>
+                <h2 id="modal-title">TITLE</h2>
+            </div>
+            <div id="modal-content"></div>
+        </div>
+
+        <script>
+// --- RESUME DATA ---
+const resumeData = {
+    "profile": {
+        title: "COMMAND CENTER",
+        type: "profile",
+        content: `
+            <h3>KRISHNA KOUSHIK</h3>
+            <p style="color: #fff; font-size: 16px;"><strong>AI Automation Engineer | Full Stack Tool Developer</strong></p>
+            <p><em>"Engineering custom automation infrastructure for high-volume generative media."</em></p>
+            <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+                <p><strong>Email:</strong> krishnakoushik93@gmail.com</p>
+                <p><strong>Phone:</strong> +91-9000527246</p>
+                <p><strong>Location:</strong> Bengaluru, Karnataka</p>
+            </div>
+        `
+    },
+    "owled": {
+        title: "OWLED MEDIA TOWER (HQ)",
+        type: "experience",
+        content: `
+            <h3>AI Automation Engineer (Aug 2025 – Present)</h3>
+            <p><em>Focus: Engineering proprietary engines to scale 12+ media assets.</em></p>
+            <ul>
+                <li><strong>Operations Scale:</strong> Managed scheduling for 12 pages, queuing <strong>60+ videos daily</strong>.</li>
+                <li><strong>Meta Bypass Scheduler:</strong> Engineered a proprietary tool overcoming Meta Suite limitations.</li>
+                <li><strong>Centralized Analytics:</strong> Built a unified tracking dashboard to calculate ecosystem views.</li>
+                <li><strong>Video Repurposing:</strong> Automated pipelines to generate multiple format variations.</li>
+                <li><strong>YouTube-to-Shorts:</strong> Programmatic X/Y axis panning & keyframing.</li>
+            </ul>
+        `
+    },
+    "marty": {
+        title: "MARTY MARTIN LABS",
+        type: "experience",
+        content: `
+            <h3>AI Developer Intern (Jan 2025 – June 2025)</h3>
+            <ul>
+                <li><strong>OCR Automation:</strong> Developed Python tools to parse invoice text via Gmail API.</li>
+                <li><strong>Slack Bot Ecosystem:</strong> Built interactive bots for real-time content analysis.</li>
+                <li><strong>Multimodal GenAI:</strong> Leveraged MidJourney and Runway for automated content.</li>
+                <li><strong>Workflows:</strong> Designed automation for invoice processing & LinkedIn strategy.</li>
+            </ul>
+        `
+    },
+    "projects": {
+        title: "R&D FACILITY (PROPRIETARY TOOLS)",
+        type: "gallery",
+        items: [
+            {
+                id: "repurposer",
+                title: "Video Repurposing Engine",
+                desc: "High-volume content scaling tool that ingests single edits and generates multi-platform variations.",
+                fullDetails: `
+                    <h3>Video Repurposing Engine</h3>
+                    <p>A specialized tool built to solve the distribution bottleneck for high-volume media operations.</p>
+                    
+                    <h4>Capabilities</h4>
+                    <ul>
+                        <li><strong>Scale:</strong> Enabled the team to pump <strong>60+ videos per day</strong> across 12+ pages.</li>
+                        <li><strong>Input:</strong> Takes one edited video file.</li>
+                        <li><strong>Output:</strong> Generates multiple format variations suitable for Instagram, Facebook, YouTube, and LinkedIn without manual re-editing.</li>
+                        <li><strong>Tech Stack:</strong> Python, FFmpeg, Custom Logic.</li>
+                    </ul>
+                    <a href="https://gamma.app/docs/Video-Repurposing-System-ao1ls45oqstozxp" target="_blank" class="doc-btn generic-doc-btn">View Full Documentation</a>
+                `
+            },
+            {
+                id: "linku",
+                title: "Linku Style Analyzer",
+                desc: "AI that analyzes LinkedIn profiles to emulate specific writing styles.",
+                img: "image_b865fd.png", 
+                fullDetails: `
+                    <h3>Linku: LinkedIn Writing Style Emulator</h3>
+                    <p>A specialized AI agent built to analyze and emulate the writing style of any LinkedIn user, generating brand-consistent content automatically.</p>
+                    
+                    <h4>Core Architecture</h4>
+                    <p>Built using <strong>n8n</strong> with a sub-agent architecture involving:</p>
+                    <ul>
+                        <li><strong>Profile Scraper Sub-Agent:</strong> Automatically scrapes LinkedIn profiles to fetch recent posts and format them for analysis.</li>
+                        <li><strong>Analysis Module:</strong> Deconstructs tone, sentence length, emoji usage, and formatting preferences.</li>
+                        <li><strong>Memory System:</strong> Stores style DNA in a database for long-term consistency.</li>
+                    </ul>
+
+                    <h4>Workflow</h4>
+                    <ol>
+                        <li><strong>Input:</strong> User provides a LinkedIn URL or writing sample.</li>
+                        <li><strong>Analysis:</strong> System generates a "Style Profile" (e.g., Professional/Conversational).</li>
+                        <li><strong>Generation:</strong> User inputs a topic, and Linku generates a post matching the stored style.</li>
+                        <li><strong>Feedback Loop:</strong> User critiques the output, and the system refines its understanding in real-time.</li>
+                    </ol>
+
+                    <a href="https://gamma.app/docs/Product-Documentation-LinkedIn-Writing-Style-Emulator-Linku--odo2musa93toj64" target="_blank" class="doc-btn">View Full Documentation</a>
+                `
+            },
+            {
+                id: "competitor",
+                title: "Competitor Intel Bot",
+                desc: "Apify-based scraper that extracts transcripts & categorizes Reels.",
+                fullDetails: `
+                    <h3>Competitor Intel Bot</h3>
+                    <p>Automated research engine.</p>
+                    <ul>
+                        <li><strong>Categorization:</strong> AI classifies video types (Explainer vs. Entertainment).</li>
+                        <li><strong>Database:</strong> Builds a searchable transcript library of competitors.</li>
+                    </ul>
+                    <a href="https://gamma.app/docs/Competitor-Content-Intelligence-System-xeqyyut50y6zy8h" target="_blank" class="doc-btn generic-doc-btn">View Full Documentation</a>
+                `
+            },
+            {
+                id: "ads",
+                title: "Generative Ad Campaigns",
+                desc: "Brand-focused visuals for Hira Perfume & Durex using Replicate.com.",
+                fullDetails: `
+                    <h3>Generative Ad Campaigns</h3>
+                    <p>Creative direction meets technical execution.</p>
+                    <ul>
+                        <li><strong>Models:</strong> Flux-dev-pro, Multi-lora, Wavespeed.</li>
+                        <li><strong>Work:</strong> Cinematic ads for Durex and product visuals for Hira Perfume.</li>
+                    </ul>
+                    <a href="https://www.instagram.com/reel/DL61DPlR096/?igsh=NzdvM2FiMXhoaXB0" target="_blank" class="doc-btn insta-doc-btn">View Ad Reel</a>
+                `
+            },
+            {
+                id: "influencer",
+                title: "AI Influencers",
+                desc: "Synthetic persona pipeline powered by Nano Banana Pro, Veo 3, Kling.",
+                fullDetails: `
+                    <h3>Synthetic Influencer R&D</h3>
+                    <p>Full pipeline for creating a consistent digital human.</p>
+                    <ul>
+                        <li><strong>Stack:</strong> Veo 3 (Video), Nano Banana Pro (Image), Seedance (Motion).</li>
+                    </ul>
+                    <div style="margin-top: 20px;">
+                        <a href="https://www.instagram.com/risewithcontent/" target="_blank" class="doc-btn insta-doc-btn">Rise With Content</a>
+                        <a href="https://www.instagram.com/bestindianpodcasts/" target="_blank" class="doc-btn insta-doc-btn">Best Indian Podcasts</a>
+                        <a href="https://www.canva.com/design/DAG98AexiWE/UJsHr_mJ9Ff4DI_UQNME5w/edit?utm_content=DAG98AexiWE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" target="_blank" class="doc-btn canva-doc-btn">AI Influencer - Canva</a>
+                    </div>
+                `
+            },
+             {
+                id: "scheduler",
+                title: "Meta-Bypass Scheduler",
+                desc: "High-volume distribution infrastructure enabling simultaneous bulk uploading.",
+                fullDetails: `
+                    <h3>Meta-Bypass Scheduler</h3>
+                    <p>Proprietary tool to overcome API limits.</p>
+                    <ul>
+                        <li><strong>Capability:</strong> Bulk upload to multiple pages with unique captions simultaneously.</li>
+                    </ul>
+                `
+            }
+        ]
+    },
+    "skills": {
+        title: "THE POWER GRID (TECH STACK)",
+        type: "list",
+        content: `
+            <div style="margin-bottom: 20px">
+                <strong style="color:#fff; display:block; margin-bottom:5px;">Generative AI Models</strong>
+                <div>
+                    <span class="tag">Veo 3</span> <span class="tag">Kling</span> <span class="tag">Nano Banana Pro</span> 
+                    <span class="tag">Seedance</span> <span class="tag">Gemini 2.5 Flash</span> <span class="tag">Sora</span>
+                    <span class="tag">MidJourney</span> <span class="tag">Higgsfield Soul</span>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px">
+                <strong style="color:#fff; display:block; margin-bottom:5px;">Automation & Scripting</strong>
+                <div>
+                    <span class="tag">Python</span> <span class="tag">n8n</span> <span class="tag">Apify</span> 
+                    <span class="tag">Selenium</span> <span class="tag">Custom API Dev</span> <span class="tag">Meta Graph API</span>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px">
+                <strong style="color:#fff; display:block; margin-bottom:5px;">Video Engineering</strong>
+                <div>
+                    <span class="tag">FFmpeg</span> <span class="tag">Auto-Keyframing</span> <span class="tag">SRT Generation</span> 
+                    <span class="tag">Programmatic Panning</span>
+                </div>
+            </div>
+
+            <div>
+                <strong style="color:#fff; display:block; margin-bottom:5px;">Core Tools</strong>
+                <div>
+                    <span class="tag">Replit</span> <span class="tag">Airtable</span> <span class="tag">Superbase</span> 
+                    <span class="tag">Cursor</span> <span class="tag">Gemini Canvas</span> <span class="tag">Unity (C#)</span>
+                </div>
+            </div>
+        `
+    }
+};
+
+// --- PHASER GAME CONFIG ---
+const config = {
+    type: Phaser.AUTO,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#0a0a0a',
+    parent: 'game-container',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let car;
+let cursors;
+let wasd;
+let zones = [];
+let isModalOpen = false;
+let isDetailView = false; // State to track navigation depth
+let modalCooldown = 0; // Cooldown timer to prevent immediate re-opening
+
+function preload() {
+    let graphics = this.make.graphics({x: 0, y: 0, add: false});
+    
+    // Car Body
+    graphics.fillStyle(0x00ffcc, 1);
+    graphics.fillRoundedRect(0, 0, 32, 54, 4);
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(6, 8, 20, 10); 
+    graphics.fillRect(6, 40, 20, 6);  
+    graphics.fillStyle(0xffffff, 0.9);
+    graphics.fillRect(2, 2, 6, 4);
+    graphics.fillRect(24, 2, 6, 4);
+    graphics.fillStyle(0xff0055, 1);
+    graphics.fillRect(2, 50, 6, 4);
+    graphics.fillRect(24, 50, 6, 4);
+    graphics.generateTexture('car', 32, 54);
+    
+    // Grid
+    graphics.clear();
+    graphics.lineStyle(1, 0x222222, 1.0);
+    graphics.strokeRect(0, 0, 128, 128);
+    graphics.lineStyle(1, 0x111111, 0.5);
+    graphics.beginPath();
+    graphics.moveTo(64, 0); graphics.lineTo(64, 128);
+    graphics.moveTo(0, 64); graphics.lineTo(128, 64);
+    graphics.strokePath();
+    graphics.generateTexture('grid', 128, 128);
+}
+
+function create() {
+    this.add.tileSprite(0, 0, 4000, 4000, 'grid').setAlpha(0.5);
+    
+    // ZONES
+    createZone(this, 0, -300, 250, 200, 0x0088ff, "profile", "COMMAND CENTER", "PROFILE");
+    createZone(this, 450, 0, 280, 220, 0xffaa00, "owled", "OWLED TOWER", "CURRENT JOB");
+    createZone(this, 750, 0, 220, 160, 0xcc8800, "marty", "MARTY LABS", "INTERNSHIP");
+    createZone(this, 0, 450, 600, 300, 0xff0055, "projects", "R&D FACILITY", "PROPRIETARY TOOLS");
+    createZone(this, -500, 0, 250, 250, 0x00ff55, "skills", "POWER GRID", "TECH STACK");
+
+    // REMOVED ROAD LINES HERE (roadGraphics was deleted)
+    
+    car = this.physics.add.sprite(0, 0, 'car');
+    car.setDrag(1500); 
+    car.setAngularDrag(1500);
+    car.setMaxVelocity(500);
+
+    this.cameras.main.startFollow(car);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setBackgroundColor('#0a0a0a');
+
+    cursors = this.input.keyboard.createCursorKeys();
+    wasd = this.input.keyboard.addKeys({ W: 87, A: 65, S: 83, D: 68 });
+
+    this.physics.add.overlap(car, zones, enterZone, null, this);
+    
+    this.add.particles(0, 0, 'car', {
+        speed: 10, scale: { start: 0.2, end: 0 }, blendMode: 'ADD', tint: 0x00ffcc,
+        lifespan: 200, frequency: 50, follow: car
+    });
+}
+
+function update() {
+    // Decrement cooldown timer
+    if (modalCooldown > 0) {
+        modalCooldown -= this.game.loop.delta;
+    }
+    
+    if (isModalOpen) {
+        car.setVelocity(0);
+        car.setAngularVelocity(0);
+        return;
+    }
+
+    const speed = 400;
+    const turnSpeed = 250;
+    
+    if (cursors.up.isDown || wasd.W.isDown) {
+        this.physics.velocityFromRotation(car.rotation - Math.PI/2, speed, car.body.velocity);
+    } else if (cursors.down.isDown || wasd.S.isDown) {
+        this.physics.velocityFromRotation(car.rotation - Math.PI/2, -speed/2, car.body.velocity);
+    }
+
+    if (cursors.left.isDown || wasd.A.isDown) car.setAngularVelocity(-turnSpeed);
+    else if (cursors.right.isDown || wasd.D.isDown) car.setAngularVelocity(turnSpeed);
+    else car.setAngularVelocity(0);
+}
+
+// CHANGED: Use a small rectangle style for the text labels on the map
+function createZone(scene, x, y, w, h, color, dataKey, label, sublabel) {
+    // 1. Physical Zone (Transparent trigger area)
+    let zone = scene.add.rectangle(x, y, w, h, color, 0.15);
+    scene.physics.add.existing(zone, true); 
+    zone.dataKey = dataKey;
+    
+    // Store zone bounds for collision detection
+    zone.bounds = {
+        left: x - w/2,
+        right: x + w/2,
+        top: y - h/2,
+        bottom: y + h/2,
+        centerX: x,
+        centerY: y,
+        width: w,
+        height: h
+    };
+    
+    let border = scene.add.graphics();
+    border.lineStyle(3, color, 1);
+    border.strokeRect(x - w/2, y - h/2, w, h);
+    
+    // 2. Small Rectangle Label (Badge style)
+    let labelBgWidth = 160;
+    let labelBgHeight = 40;
+    
+    let labelGraphics = scene.add.graphics();
+    labelGraphics.fillStyle(color, 1); // Solid color fill
+    labelGraphics.fillRoundedRect(x - labelBgWidth/2, y - h/2 - 25, labelBgWidth, labelBgHeight, 8);
+    
+    // Main Label Text inside the rectangle
+    scene.add.text(x, y - h/2 - 5, label, { 
+        fontSize: '14px', 
+        fontFamily: 'Courier New', 
+        fontStyle: 'bold', 
+        color: '#000000', // Black text on colored badge
+        align: 'center' 
+    }).setOrigin(0.5);
+
+    // Sublabel below
+    if (sublabel) {
+        scene.add.text(x, y + h/2 + 20, sublabel, { 
+            fontSize: '12px', 
+            fontFamily: 'Courier New', 
+            color: '#cccccc', 
+            backgroundColor: '#000000', 
+            padding: { x: 4, y: 2 }, 
+            align: 'center' 
+        }).setOrigin(0.5);
+    }
+
+    zones.push(zone);
+}
+
+function enterZone(player, zone) {
+    if (isModalOpen || modalCooldown > 0) return;
+    let data = resumeData[zone.dataKey];
+    if (data) openModal(data);
+}
+
+// --- MODAL SYSTEM ---
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalContent = document.getElementById('modal-content');
+const closeBtn = document.getElementById('close-btn');
+const backBtn = document.getElementById('back-btn');
+
+function openModal(data) {
+    isModalOpen = true;
+    isDetailView = false; // Reset state
+    modalTitle.innerText = data.title;
+    
+    renderContent(data);
+    modal.style.display = 'flex';
+}
+
+function renderContent(data) {
+    let html = "";
+    if (data.type === 'profile') {
+        html = `
+            <div class="profile-header">
+                <div>${data.content}</div>
+            </div>
+        `;
+    } 
+    else if (data.type === 'experience') {
+        html += data.content;
+    }
+    else if (data.type === 'gallery') {
+        html += `<div class="project-grid">`;
+        data.items.forEach((item, index) => {
+            html += `
+                <div class="project-card" onclick="openProjectDetail(${index})">
+                    <div class="card-content">
+                        <span class="card-title">${item.title}</span>
+                        <p class="card-desc">${item.desc}</p>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    else {
+        html = data.content;
+    }
+    modalContent.innerHTML = html;
+}
+
+function openProjectDetail(index) {
+    let projects = resumeData["projects"].items;
+    let item = projects[index];
+    
+    isDetailView = true; // Mark as deep view
+    modalTitle.innerText = item.title;
+    
+    let html = `
+        <div class="detail-view">
+            ${item.img ? `<img src="${item.img}" style="width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 20px; max-height: 300px; object-fit: cover;" alt="${item.title}">` : ''}
+            ${item.fullDetails || `<p>${item.desc}</p>`}
+        </div>
+    `;
+    modalContent.innerHTML = html;
+    
+    modalContent.scrollTop = 0;
+}
+
+function handleBack() {
+    if (isDetailView) {
+        // If deep, go up one level
+        modalTitle.innerText = resumeData["projects"].title;
+        renderContent(resumeData["projects"]);
+        isDetailView = false;
+    } else {
+        // If at root, close modal
+        closeModal();
+    }
+}
+
+// Function to check if car is inside a zone
+function getCurrentZone() {
+    if (!car || !zones) return null;
+    
+    for (let zone of zones) {
+        if (!zone.bounds) continue;
+        
+        const bounds = zone.bounds;
+        const carX = car.x;
+        const carY = car.y;
+        
+        // Check if car is inside zone bounds
+        if (carX >= bounds.left && carX <= bounds.right &&
+            carY >= bounds.top && carY <= bounds.bottom) {
+            return zone;
+        }
+    }
+    return null;
+}
+
+function closeModal() {
+    isModalOpen = false;
+    modal.style.display = 'none';
+    
+    // Set cooldown to prevent immediate re-opening (800ms)
+    modalCooldown = 800;
+    
+    // Interactive area boundaries - keeps car within reach of all zones
+    // Based on zone positions: skills(-500) to marty(750), profile(-300) to projects(450)
+    const interactiveMinX = -750;  // Left of skills zone
+    const interactiveMaxX = 950;   // Right of marty zone
+    const interactiveMinY = -500;  // Top of profile zone
+    const interactiveMaxY = 700;   // Bottom of projects zone
+    
+    // Find which zone the car is currently in
+    const currentZone = getCurrentZone();
+    
+    if (currentZone && currentZone.bounds) {
+        const bounds = currentZone.bounds;
+        const carX = car.x;
+        const carY = car.y;
+        
+        // Calculate distances to each edge
+        const distToLeft = Math.abs(carX - bounds.left);
+        const distToRight = Math.abs(carX - bounds.right);
+        const distToTop = Math.abs(carY - bounds.top);
+        const distToBottom = Math.abs(carY - bounds.bottom);
+        
+        // Find the closest edge
+        const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+        
+        // Calculate new position with reasonable padding (300px) to stay within interactive area
+        let newX = carX;
+        let newY = carY;
+        const pushDistance = 300;
+        
+        if (minDist === distToLeft) {
+            newX = bounds.left - pushDistance;
+        } else if (minDist === distToRight) {
+            newX = bounds.right + pushDistance;
+        } else if (minDist === distToTop) {
+            newY = bounds.top - pushDistance;
+        } else {
+            newY = bounds.bottom + pushDistance;
+        }
+        
+        // Clamp to interactive area boundaries
+        newX = Math.max(interactiveMinX, Math.min(interactiveMaxX, newX));
+        newY = Math.max(interactiveMinY, Math.min(interactiveMaxY, newY));
+        
+        car.x = newX;
+        car.y = newY;
+    } else {
+        // If not in a zone, just move slightly but stay within bounds
+        const newY = Math.max(interactiveMinY, Math.min(interactiveMaxY, car.y + 150));
+        car.y = newY;
+    }
+    
+    // Stop any velocity to prevent immediate re-entry
+    car.setVelocity(0);
+    car.setAngularVelocity(0);
+    
+    // Force physics update to ensure car position is updated immediately
+    if (car.body) {
+        car.body.updateFromGameObject();
+    }
+}
+
+closeBtn.addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => { 
+    if (e.key === "Escape" || e.key === "x" || e.key === "X") closeModal(); 
+});
+window.addEventListener('resize', () => { game.scale.resize(window.innerWidth, window.innerHeight); });
+
+</script>
+    </body>
+</html>
