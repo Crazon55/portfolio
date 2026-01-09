@@ -231,12 +231,87 @@
             width: auto;
             max-width: 300px;
         }
+        
+        /* Mobile Touch Controls */
+        #touch-controls {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            display: none; /* Hidden by default, shown on touch devices */
+            z-index: 100;
+            touch-action: none;
+        }
+        
+        @media (hover: none) and (pointer: coarse) {
+            #touch-controls {
+                display: grid;
+            }
+            #hud {
+                bottom: 200px;
+            }
+        }
+        
+        .touch-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 150px;
+        }
+        
+        .touch-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 255, 204, 0.2);
+            border: 2px solid #00ffcc;
+            color: #00ffcc;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+            transition: all 0.1s;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .touch-btn:active {
+            background: rgba(0, 255, 204, 0.5);
+            transform: scale(0.95);
+        }
+        
+        .touch-btn.up { grid-column: 2; grid-row: 1; }
+        .touch-btn.left { grid-column: 1; grid-row: 2; }
+        .touch-btn.down { grid-column: 2; grid-row: 2; }
+        .touch-btn.right { grid-column: 3; grid-row: 2; }
+        
+        .touch-btn.interact {
+            grid-column: 2;
+            grid-row: 3;
+            margin-top: 10px;
+            width: 100%;
+            font-size: 12px;
+            height: 40px;
+        }
     </style>
     </head>
     <body>
 
         <div id="game-container"></div>
         <div id="hud">WASD / ARROWS to Drive<br>PARK to Interact</div>
+
+        <!-- Mobile Touch Controls -->
+        <div id="touch-controls">
+            <div class="touch-controls-grid">
+                <button class="touch-btn up" id="touch-up">▲</button>
+                <button class="touch-btn left" id="touch-left">◄</button>
+                <button class="touch-btn down" id="touch-down">▼</button>
+                <button class="touch-btn right" id="touch-right">►</button>
+                <button class="touch-btn interact" id="touch-interact">INTERACT</button>
+            </div>
+        </div>
 
         <div id="modal">
             <div id="modal-header">
@@ -472,6 +547,15 @@ let isModalOpen = false;
 let isDetailView = false; // State to track navigation depth
 let modalCooldown = 0; // Cooldown timer to prevent immediate re-opening
 
+// Touch control state
+let touchKeys = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+};
+let currentZone = null; // Track current zone for touch interaction
+
 function preload() {
     let graphics = this.make.graphics({x: 0, y: 0, add: false});
     
@@ -548,15 +632,24 @@ function update() {
     const speed = 400;
     const turnSpeed = 250;
     
-    if (cursors.up.isDown || wasd.W.isDown) {
+    // Check for keyboard or touch controls
+    const isMovingForward = cursors.up.isDown || wasd.W.isDown || touchKeys.up;
+    const isMovingBackward = cursors.down.isDown || wasd.S.isDown || touchKeys.down;
+    const isTurningLeft = cursors.left.isDown || wasd.A.isDown || touchKeys.left;
+    const isTurningRight = cursors.right.isDown || wasd.D.isDown || touchKeys.right;
+    
+    if (isMovingForward) {
         this.physics.velocityFromRotation(car.rotation - Math.PI/2, speed, car.body.velocity);
-    } else if (cursors.down.isDown || wasd.S.isDown) {
+    } else if (isMovingBackward) {
         this.physics.velocityFromRotation(car.rotation - Math.PI/2, -speed/2, car.body.velocity);
     }
 
-    if (cursors.left.isDown || wasd.A.isDown) car.setAngularVelocity(-turnSpeed);
-    else if (cursors.right.isDown || wasd.D.isDown) car.setAngularVelocity(turnSpeed);
+    if (isTurningLeft) car.setAngularVelocity(-turnSpeed);
+    else if (isTurningRight) car.setAngularVelocity(turnSpeed);
     else car.setAngularVelocity(0);
+    
+    // Check if car is in a zone for touch interaction
+    currentZone = getCurrentZone();
 }
 
 // CHANGED: Use a small rectangle style for the text labels on the map
@@ -791,6 +884,105 @@ document.addEventListener('keydown', (e) => {
     if (e.key === "Escape" || e.key === "x" || e.key === "X") closeModal(); 
 });
 window.addEventListener('resize', () => { game.scale.resize(window.innerWidth, window.innerHeight); });
+
+// Touch Controls Setup
+function setupTouchControls() {
+    const touchUp = document.getElementById('touch-up');
+    const touchDown = document.getElementById('touch-down');
+    const touchLeft = document.getElementById('touch-left');
+    const touchRight = document.getElementById('touch-right');
+    const touchInteract = document.getElementById('touch-interact');
+    
+    // Handle touch start/end for smooth movement
+    function handleTouchStart(key) {
+        return (e) => {
+            e.preventDefault();
+            touchKeys[key] = true;
+        };
+    }
+    
+    function handleTouchEnd(key) {
+        return (e) => {
+            e.preventDefault();
+            touchKeys[key] = false;
+        };
+    }
+    
+    // Direction buttons
+    if (touchUp) {
+        touchUp.addEventListener('touchstart', handleTouchStart('up'), { passive: false });
+        touchUp.addEventListener('touchend', handleTouchEnd('up'), { passive: false });
+        touchUp.addEventListener('touchcancel', handleTouchEnd('up'), { passive: false });
+        touchUp.addEventListener('mousedown', handleTouchStart('up'));
+        touchUp.addEventListener('mouseup', handleTouchEnd('up'));
+        touchUp.addEventListener('mouseleave', handleTouchEnd('up'));
+    }
+    
+    if (touchDown) {
+        touchDown.addEventListener('touchstart', handleTouchStart('down'), { passive: false });
+        touchDown.addEventListener('touchend', handleTouchEnd('down'), { passive: false });
+        touchDown.addEventListener('touchcancel', handleTouchEnd('down'), { passive: false });
+        touchDown.addEventListener('mousedown', handleTouchStart('down'));
+        touchDown.addEventListener('mouseup', handleTouchEnd('down'));
+        touchDown.addEventListener('mouseleave', handleTouchEnd('down'));
+    }
+    
+    if (touchLeft) {
+        touchLeft.addEventListener('touchstart', handleTouchStart('left'), { passive: false });
+        touchLeft.addEventListener('touchend', handleTouchEnd('left'), { passive: false });
+        touchLeft.addEventListener('touchcancel', handleTouchEnd('left'), { passive: false });
+        touchLeft.addEventListener('mousedown', handleTouchStart('left'));
+        touchLeft.addEventListener('mouseup', handleTouchEnd('left'));
+        touchLeft.addEventListener('mouseleave', handleTouchEnd('left'));
+    }
+    
+    if (touchRight) {
+        touchRight.addEventListener('touchstart', handleTouchStart('right'), { passive: false });
+        touchRight.addEventListener('touchend', handleTouchEnd('right'), { passive: false });
+        touchRight.addEventListener('touchcancel', handleTouchEnd('right'), { passive: false });
+        touchRight.addEventListener('mousedown', handleTouchStart('right'));
+        touchRight.addEventListener('mouseup', handleTouchEnd('right'));
+        touchRight.addEventListener('mouseleave', handleTouchEnd('right'));
+    }
+    
+    // Interact button - opens modal if in a zone
+    if (touchInteract) {
+        touchInteract.addEventListener('click', () => {
+            if (isModalOpen || modalCooldown > 0) return;
+            
+            const zone = getCurrentZone();
+            if (zone && zone.dataKey) {
+                const data = resumeData[zone.dataKey];
+                if (data) {
+                    openModal(data);
+                }
+            }
+        });
+    }
+    
+    // Update HUD for mobile
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+        const hud = document.getElementById('hud');
+        if (hud) {
+            hud.innerHTML = 'TAP ARROWS TO DRIVE<br>TAP INTERACT TO OPEN';
+        }
+    }
+}
+
+// Initialize touch controls when page loads
+setupTouchControls();
+
+// Also check for touch capability and show controls if needed
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    const touchControls = document.getElementById('touch-controls');
+    if (touchControls) {
+        touchControls.style.display = 'grid';
+        const hud = document.getElementById('hud');
+        if (hud) {
+            hud.style.bottom = '200px';
+        }
+    }
+}
 
 </script>
     </body>
